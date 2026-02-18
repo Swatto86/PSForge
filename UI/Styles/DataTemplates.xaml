@@ -1,0 +1,286 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:PSForge.ViewModels"
+                    xmlns:helpers="clr-namespace:PSForge.UI.Helpers"
+                    xmlns:controls="clr-namespace:PSForge.UI.Controls">
+
+    <!-- ================================================================
+         Parameter Data Templates
+         Each template renders a specific parameter type as the most
+         appropriate WPF control. Selected by ParameterDataTemplateSelector.
+         DataContext for each template is a ParameterValueViewModel.
+         ================================================================ -->
+
+    <!-- ── Default: Single-line TextBox ── -->
+    <DataTemplate x:Key="DefaultParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                           Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="{Binding TypeName, StringFormat=' [{0}]'}"
+                           Style="{StaticResource SecondaryTextStyle}"
+                           Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding RequiredLabel}"
+                           FontSize="10" FontWeight="SemiBold" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                    <Setter Property="Foreground" Value="#D13438"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="0,0,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBox Text="{Binding StringValue, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     ToolTip="{Binding HelpMessage}"/>
+            <TextBlock Text="{Binding ValidationError}"
+                       Style="{StaticResource ErrorTextStyle}"
+                       Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"
+                       Margin="0,2,0,0" FontSize="11"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ── Switch Parameter: CheckBox ── -->
+    <DataTemplate x:Key="SwitchParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <CheckBox IsChecked="{Binding BoolValue}"
+                      ToolTip="{Binding HelpMessage}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                    <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                               Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+            </CheckBox>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="20,2,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ── ValidateSet: ComboBox ── -->
+    <DataTemplate x:Key="ValidateSetParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                           Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="{Binding RequiredLabel}"
+                           FontSize="10" FontWeight="SemiBold" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                    <Setter Property="Foreground" Value="#D13438"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="0,0,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <ComboBox ItemsSource="{Binding ValidateSetValues}"
+                      SelectedItem="{Binding StringValue}"
+                      Style="{StaticResource FormComboBoxStyle}"
+                      ToolTip="{Binding HelpMessage}"
+                      IsEditable="False"/>
+            <TextBlock Text="{Binding ValidationError}"
+                       Style="{StaticResource ErrorTextStyle}"
+                       Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"
+                       Margin="0,2,0,0" FontSize="11"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ── DateTime: DatePicker ── -->
+    <DataTemplate x:Key="DateTimeParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                           Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="{Binding RequiredLabel}"
+                           FontSize="10" FontWeight="SemiBold" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                    <Setter Property="Foreground" Value="#D13438"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="0,0,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <DatePicker SelectedDate="{Binding DateTimeValue}"
+                        ToolTip="{Binding HelpMessage}"/>
+            <TextBlock Text="{Binding ValidationError}"
+                       Style="{StaticResource ErrorTextStyle}"
+                       Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"
+                       Margin="0,2,0,0" FontSize="11"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ── SecureString: PasswordBox ──
+         Uses PasswordBoxHelper attached property because WPF PasswordBox
+         intentionally does not support binding for security reasons. -->
+    <DataTemplate x:Key="SecureStringParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                           Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text=" [SecureString]"
+                           Style="{StaticResource SecondaryTextStyle}"
+                           Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding RequiredLabel}"
+                           FontSize="10" FontWeight="SemiBold" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                    <Setter Property="Foreground" Value="#D13438"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="0,0,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <PasswordBox helpers:PasswordBoxHelper.Attach="True"
+                         ToolTip="{Binding HelpMessage}"/>
+            <TextBlock Text="{Binding ValidationError}"
+                       Style="{StaticResource ErrorTextStyle}"
+                       Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"
+                       Margin="0,2,0,0" FontSize="11"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ── PSCredential: CredentialInputControl ── -->
+    <DataTemplate x:Key="CredentialParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                           Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text=" [PSCredential]"
+                           Style="{StaticResource SecondaryTextStyle}"
+                           Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding RequiredLabel}"
+                           FontSize="10" FontWeight="SemiBold" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                    <Setter Property="Foreground" Value="#D13438"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="0,0,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <controls:CredentialInputControl DataContext="{Binding}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ── Numeric: TextBox with type hint ── -->
+    <DataTemplate x:Key="NumericParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                           Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="{Binding TypeName, StringFormat=' [{0}]'}"
+                           Style="{StaticResource SecondaryTextStyle}"
+                           Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding RequiredLabel}"
+                           FontSize="10" FontWeight="SemiBold" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                    <Setter Property="Foreground" Value="#D13438"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="0,0,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBox Text="{Binding StringValue, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     ToolTip="{Binding HelpMessage}"
+                     InputScope="Number"/>
+            <TextBlock Text="{Binding ValidationError}"
+                       Style="{StaticResource ErrorTextStyle}"
+                       Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"
+                       Margin="0,2,0,0" FontSize="11"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ── Array: Multi-line TextBox ── -->
+    <DataTemplate x:Key="ArrayParameterTemplate" DataType="{x:Type vm:ParameterValueViewModel}">
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource ParameterLabelStyle}"/>
+                <TextBlock Style="{StaticResource MandatoryIndicatorStyle}"
+                           Visibility="{Binding IsMandatory, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="{Binding TypeName, StringFormat=' [{0}]'}"
+                           Style="{StaticResource SecondaryTextStyle}"
+                           Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding RequiredLabel}"
+                           FontSize="10" FontWeight="SemiBold" Margin="8,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                    <Setter Property="Foreground" Value="#D13438"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                       FontSize="11" Foreground="#666666" Margin="0,0,0,4"
+                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBox Text="{Binding StringValue, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     AcceptsReturn="True"
+                     MinHeight="60"
+                     MaxHeight="150"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     ToolTip="Enter values separated by commas or newlines"/>
+            <TextBlock Text="{Binding ValidationError}"
+                       Style="{StaticResource ErrorTextStyle}"
+                       Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"
+                       Margin="0,2,0,0" FontSize="11"/>
+        </StackPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

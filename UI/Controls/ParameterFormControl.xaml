@@ -1,0 +1,90 @@
+<UserControl x:Class="PSForge.UI.Controls.ParameterFormControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ts="clr-namespace:PSForge.UI.TemplateSelectors"
+             xmlns:vm="clr-namespace:PSForge.ViewModels">
+
+    <!-- ================================================================
+         ParameterFormControl
+         Dynamically generates parameter input fields using an ItemsControl
+         with a ParameterDataTemplateSelector. Each parameter is rendered
+         as the appropriate control based on its CLR type.
+         Clicking a parameter selects it in the detail sidebar.
+         
+         DataContext: CmdletViewModel
+         ================================================================ -->
+
+    <UserControl.Resources>
+        <ts:ParameterDataTemplateSelector x:Key="ParamTemplateSelector"
+            DefaultTemplate="{StaticResource DefaultParameterTemplate}"
+            SwitchTemplate="{StaticResource SwitchParameterTemplate}"
+            ValidateSetTemplate="{StaticResource ValidateSetParameterTemplate}"
+            DateTimeTemplate="{StaticResource DateTimeParameterTemplate}"
+            SecureStringTemplate="{StaticResource SecureStringParameterTemplate}"
+            CredentialTemplate="{StaticResource CredentialParameterTemplate}"
+            NumericTemplate="{StaticResource NumericParameterTemplate}"
+            ArrayTemplate="{StaticResource ArrayParameterTemplate}"/>
+
+        <!-- Style for clickable parameter items — highlights on hover/selection -->
+        <Style x:Key="ParameterItemStyle" TargetType="ContentPresenter">
+            <!-- ContentPresenter doesn't support triggers well; use Border wrapper in template instead -->
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="0,0,8,0">
+        <StackPanel>
+            <!-- Mandatory Parameters Section -->
+            <StackPanel Visibility="{Binding MandatoryParameters.Count, Converter={StaticResource NullToVisibilityConverter}}">
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                        Padding="0,0,0,4" Margin="0,0,0,10">
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#D13438">
+                        <Run Text="Required Parameters"/>
+                        <Run Text="{Binding MandatoryParameters.Count, Mode=OneWay, StringFormat=' ({0})'}" Foreground="#888888"/>
+                    </TextBlock>
+                </Border>
+                <ItemsControl ItemsSource="{Binding MandatoryParameters}"
+                              ItemTemplateSelector="{StaticResource ParamTemplateSelector}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <EventSetter Event="GotFocus" Handler="ParameterItem_GotFocus"/>
+                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="ParameterItem_Click"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Optional Parameters Section -->
+            <StackPanel Margin="0,6,0,0"
+                        Visibility="{Binding OptionalParameters.Count, Converter={StaticResource NullToVisibilityConverter}}">
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                        Padding="0,0,0,4" Margin="0,0,0,10">
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#888888">
+                        <Run Text="Optional Parameters"/>
+                        <Run Text="{Binding OptionalParameters.Count, Mode=OneWay, StringFormat=' ({0})'}" Foreground="#888888"/>
+                    </TextBlock>
+                </Border>
+                <ItemsControl ItemsSource="{Binding OptionalParameters}"
+                              ItemTemplateSelector="{StaticResource ParamTemplateSelector}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <EventSetter Event="GotFocus" Handler="ParameterItem_GotFocus"/>
+                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="ParameterItem_Click"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

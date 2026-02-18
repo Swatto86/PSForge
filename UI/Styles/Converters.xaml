@@ -1,0 +1,13 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:PSForge.UI.Converters">
+
+    <!-- Global converter instances available to all XAML via StaticResource.
+         This dictionary MUST be merged before any other dictionaries that
+         reference these converters (e.g. DataTemplates.xaml, Styles.xaml). -->
+    <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+    <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+    <converters:TypeToControlConverter x:Key="TypeToControlConverter"/>
+
+</ResourceDictionary>

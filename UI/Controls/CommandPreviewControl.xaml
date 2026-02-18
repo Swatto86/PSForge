@@ -1,0 +1,45 @@
+<UserControl x:Class="PSForge.UI.Controls.CommandPreviewControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ================================================================
+         CommandPreviewControl
+         Shows the reconstructed PowerShell command string that would be
+         executed with the current parameter values. Updates live as
+         the user fills in form fields.
+         
+         DataContext: CmdletViewModel (binds to CommandPreview property)
+         ================================================================ -->
+
+    <Border Style="{StaticResource CardStyle}"
+            Background="#1E1E1E"
+            Padding="12,8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Label -->
+            <TextBlock Grid.Row="0"
+                       Text="Command Preview"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="#888888"
+                       Margin="0,0,0,4"/>
+
+            <!-- Command text in monospace, PS-style green on dark -->
+            <TextBox Grid.Row="1"
+                     Text="{Binding CommandPreview, Mode=OneWay}"
+                     IsReadOnly="True"
+                     TextWrapping="Wrap"
+                     Background="Transparent"
+                     Foreground="#4EC9B0"
+                     FontFamily="Cascadia Code, Consolas, Courier New"
+                     FontSize="13"
+                     BorderThickness="0"
+                     Padding="0"
+                     Cursor="IBeam"/>
+        </Grid>
+    </Border>
+</UserControl>

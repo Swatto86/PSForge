@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PSForge</RootNamespace>
+    <AssemblyName>PSForge</AssemblyName>
+    <ApplicationIcon>psforge.ico</ApplicationIcon>
+    <StartupObject>PSForge.App</StartupObject>
+
+    <!-- Assembly / package metadata -->
+    <Product>PSForge</Product>
+    <AssemblyTitle>PSForge — Universal PowerShell Module GUI</AssemblyTitle>
+    <Description>A production-grade WPF desktop application that introspects any installed PowerShell module and dynamically generates a functional GUI for all of its cmdlets.</Description>
+    <Company>Swatto</Company>
+    <Authors>Swatto</Authors>
+    <Copyright>Copyright © Swatto 2026</Copyright>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <NeutralLanguage>en</NeutralLanguage>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.6" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>

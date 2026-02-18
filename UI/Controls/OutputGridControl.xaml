@@ -1,0 +1,56 @@
+<UserControl x:Class="PSForge.UI.Controls.OutputGridControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ================================================================
+         OutputGridControl
+         DataGrid-based object viewer with auto-generated columns from
+         PSObject property names. Bound to OutputViewModel.GridData (DataTable).
+         
+         AutoGenerateColumns handles the dynamic column creation since
+         different cmdlets return objects with different property sets.
+         ================================================================ -->
+
+    <DataGrid ItemsSource="{Binding GridData}"
+              AutoGenerateColumns="True"
+              IsReadOnly="True"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False"
+              CanUserReorderColumns="True"
+              CanUserResizeColumns="True"
+              CanUserSortColumns="True"
+              SelectionMode="Extended"
+              SelectionUnit="CellOrRowHeader"
+              GridLinesVisibility="Horizontal"
+              AlternatingRowBackground="#F9F9F9"
+              HeadersVisibility="Column"
+              VerticalScrollBarVisibility="Auto"
+              HorizontalScrollBarVisibility="Auto"
+              FontFamily="Segoe UI"
+              FontSize="12"
+              BorderThickness="1"
+              BorderBrush="{StaticResource BorderBrush}">
+        <DataGrid.ColumnHeaderStyle>
+            <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Padding" Value="8,6"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            </Style>
+        </DataGrid.ColumnHeaderStyle>
+        <DataGrid.CellStyle>
+            <Style TargetType="DataGridCell">
+                <Setter Property="Padding" Value="8,4"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Style.Triggers>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="#CCE4F7"/>
+                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </DataGrid.CellStyle>
+    </DataGrid>
+</UserControl>
