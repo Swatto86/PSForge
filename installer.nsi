@@ -18,7 +18,7 @@
 
 ; ── Version info (updated by update-application.ps1) ────────────────────────
 !define PRODUCT_NAME      "PSForge"
-!define PRODUCT_VERSION   "1.0.3"
+!define PRODUCT_VERSION   "1.0.4"
 !define PRODUCT_PUBLISHER "Swatto"
 !define PRODUCT_WEB_SITE  ""
 !define PRODUCT_EXE       "PSForge.exe"
