@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags (v1.0.0, v1.2.3, etc.)
+
+permissions:
+  contents: write  # Required to create releases and upload assets
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Verify required files
+        shell: pwsh
+        run: |
+          $required = @('LICENSE', 'psforge.ico', 'installer.nsi', 'PSForge.csproj')
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) {
+              Write-Error "Required file missing: $file"
+              exit 1
+            }
+          }
+          Write-Host "✓ All required files present"
+      
+      - name: Extract version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version: $version"
+      
+      - name: Restore dependencies
+        run: dotnet restore PSForge.csproj
+      
+      - name: Publish application (framework-dependent)
+        run: |
+          dotnet publish PSForge.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -o bin/publish
+      
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+          # Add NSIS to PATH for subsequent steps
+          echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
+      
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          # Ensure installer output directory exists
+          New-Item -ItemType Directory -Force -Path "bin\installer" | Out-Null
+          
+          # Build the installer
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "NSIS build failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          
+          # Verify installer was created
+          $installerPath = "bin\installer\PSForge-${{ steps.version.outputs.VERSION }}-Setup.exe"
+          if (-not (Test-Path $installerPath)) {
+            Write-Error "Installer not found at: $installerPath"
+            exit 1
+          }
+          
+          $sizeMB = [math]::Round((Get-Item $installerPath).Length / 1MB, 2)
+          Write-Host "✓ Installer built: $installerPath ($sizeMB MB)"
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: PSForge ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## PSForge ${{ steps.version.outputs.VERSION }}
+            
+            ### Installation
+            
+            1. Download `PSForge-${{ steps.version.outputs.VERSION }}-Setup.exe`
+            2. Run the installer
+            3. The installer will detect and offer to install .NET 8.0 Desktop Runtime if missing
+            4. Launch PSForge from the Start Menu
+            
+            ### Requirements
+            
+            - Windows 10 x64 or higher
+            - .NET 8.0 Desktop Runtime (installer handles this automatically)
+            - PowerShell 5.0 or higher
+            
+            ### What's Changed
+            
+            See the commit history for details.
+          files: |
+            bin/installer/PSForge-${{ steps.version.outputs.VERSION }}-Setup.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Summary
+        shell: pwsh
+        run: |
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+          Write-Host "  Release ${{ github.ref_name }} published successfully!" -ForegroundColor Green
+          Write-Host "  Installer: PSForge-${{ steps.version.outputs.VERSION }}-Setup.exe" -ForegroundColor Green
+          Write-Host "  URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" -ForegroundColor Green
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
