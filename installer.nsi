@@ -13,12 +13,13 @@
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
+!include "WordFunc.nsh"
 !include "LogicLib.nsh"
 !include "x64.nsh"
 
 ; ── Version info (updated by update-application.ps1) ────────────────────────
 !define PRODUCT_NAME      "PSForge"
-!define PRODUCT_VERSION   "1.0.0"
+!define PRODUCT_VERSION   "1.0.1"
 !define PRODUCT_PUBLISHER "Swatto"
 !define PRODUCT_WEB_SITE  ""
 !define PRODUCT_EXE       "PSForge.exe"
@@ -44,8 +45,8 @@ SetCompressorDictSize 32
 
 ; ── MUI settings ────────────────────────────────────────────────────────────
 !define MUI_ABORTWARNING
-!define MUI_ICON "${PUBLISH_DIR}\${PRODUCT_EXE}"
-!define MUI_UNICON "${PUBLISH_DIR}\${PRODUCT_EXE}"
+!define MUI_ICON "psforge.ico"
+!define MUI_UNICON "psforge.ico"
 
 ; ── Pages ───────────────────────────────────────────────────────────────────
 !insertmacro MUI_PAGE_WELCOME
@@ -103,24 +104,12 @@ Function CheckDotNetRuntime
       IDYES DownloadDotNet IDNO AbortInstall
 
   DownloadDotNet:
-    DetailPrint "Downloading .NET ${DOTNET_VERSION} Desktop Runtime..."
-    inetc::get /CAPTION "Downloading .NET Runtime" /BANNER "Please wait..." \
-      "${DOTNET_RUNTIME_URL}" "$TEMP\dotnet-desktop-runtime.exe" /END
-    Pop $0
-    ${If} $0 != "OK"
-      MessageBox MB_OK|MB_ICONSTOP "Failed to download .NET Runtime: $0"
-      Abort
-    ${EndIf}
-
-    DetailPrint "Installing .NET ${DOTNET_VERSION} Desktop Runtime..."
-    ExecWait '"$TEMP\dotnet-desktop-runtime.exe" /install /quiet /norestart' $0
-    ${If} $0 != 0
-      MessageBox MB_OK|MB_ICONSTOP "The .NET Runtime installer returned error code $0.$\nPlease install .NET ${DOTNET_VERSION} Desktop Runtime manually."
-      Abort
-    ${EndIf}
-    Delete "$TEMP\dotnet-desktop-runtime.exe"
-    DetailPrint ".NET Runtime installed successfully."
-    Goto DotNetDone
+    DetailPrint "Opening .NET ${DOTNET_VERSION} Desktop Runtime download page..."
+    ExecShell "open" "${DOTNET_RUNTIME_URL}"
+    MessageBox MB_OK|MB_ICONINFORMATION \
+      "Your browser will open to download the .NET Runtime installer.$\n$\n\
+       Please install it, then run this installer again."
+    Abort
 
   AbortInstall:
     MessageBox MB_OK|MB_ICONSTOP \
