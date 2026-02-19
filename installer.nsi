@@ -13,13 +13,12 @@
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
-!include "WordFunc.nsh"
 !include "LogicLib.nsh"
 !include "x64.nsh"
 
 ; ── Version info (updated by update-application.ps1) ────────────────────────
 !define PRODUCT_NAME      "PSForge"
-!define PRODUCT_VERSION   "1.0.1"
+!define PRODUCT_VERSION   "1.0.2"
 !define PRODUCT_PUBLISHER "Swatto"
 !define PRODUCT_WEB_SITE  ""
 !define PRODUCT_EXE       "PSForge.exe"
@@ -81,20 +80,24 @@ Function CheckDotNetRuntime
 
   ; Look for Microsoft.WindowsDesktop.App 8.x in the output
   ${If} $0 == 0
-    StrCpy $2 0
-    ; Simple string search for the runtime line
-    ${WordFind} $1 "Microsoft.WindowsDesktop.App ${DOTNET_VERSION}" "E+1{" $3
-    IfErrors 0 +2
-      StrCpy $2 0
-      Goto DotNetNotFound
-    StrCpy $2 1
+    ; Check if output contains "Microsoft.WindowsDesktop.App" and " 8."
+    Push $1
+    Push "Microsoft.WindowsDesktop.App"
+    Call StrStr
+    Pop $2
+    
+    StrCmp $2 "" DotNetNotFound 0
+    
+    ; Found WindowsDesktop.App, now verify version 8.x
+    Push $1
+    Push " 8."
+    Call StrStr
+    Pop $3
+    
+    StrCmp $3 "" DotNetNotFound DotNetDone
   ${Else}
-    StrCpy $2 0
-  ${EndIf}
-
-  ${If} $2 == 1
-    ; Runtime found — continue
-    Goto DotNetDone
+    ; dotnet command not found
+    Goto DotNetNotFound
   ${EndIf}
 
   DotNetNotFound:
@@ -188,3 +191,34 @@ Section "Uninstall"
   DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
 
 SectionEnd
+
+; ============================================================================
+; Helper Functions
+; ============================================================================
+
+; StrStr - Find substring in string
+; Input: Stack - Haystack, Needle
+; Output: Stack - Substring start or "" if not found
+Function StrStr
+  Exch $R1 ; Needle
+  Exch
+  Exch $R2 ; Haystack
+  Push $R3
+  Push $R4
+  Push $R5
+  StrLen $R3 $R1
+  StrCpy $R4 0
+  loop:
+    StrCpy $R5 $R2 $R3 $R4
+    StrCmp $R5 $R1 done
+    StrCmp $R5 "" done
+    IntOp $R4 $R4 + 1
+    Goto loop
+  done:
+    StrCpy $R1 $R2 "" $R4
+    Pop $R5
+    Pop $R4
+    Pop $R3
+    Pop $R2
+    Exch $R1
+FunctionEnd
