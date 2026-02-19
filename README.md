@@ -18,8 +18,8 @@ PSForge provides a user-friendly graphical interface for PowerShell scripting an
 
 ## Requirements
 
-- **.NET 8.0** or higher
-- **Windows 7 SP1** or higher (for WPF support)
+- **Windows 10 x64** or higher (for WPF support)
+- **[.NET 8.0 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)** (the installer will offer to download this if missing)
 - **PowerShell 5.0** or higher (for Core functionality)
 
 ## Building
@@ -46,6 +46,59 @@ dotnet build -c Release
 
 - **Debug builds**: `bin/Debug/net8.0-windows/`
 - **Release builds**: `bin/Release/net8.0-windows/`
+
+## Publishing & Installer
+
+PSForge is distributed as a standard Windows installer built with [NSIS](https://nsis.sourceforge.io). The application is published **framework-dependent** (requires .NET 8.0 Desktop Runtime on the target machine) to keep the installer small.
+
+### Quick Publish
+
+```bash
+dotnet publish PSForge.csproj -c Release -r win-x64 --self-contained false -o bin/publish
+```
+
+Or use the publish profile:
+
+```bash
+dotnet publish -p:PublishProfile=win-x64
+```
+
+### Building the Installer
+
+Prerequisites: [NSIS 3.x](https://nsis.sourceforge.io) with `makensis` on PATH.
+
+```bash
+# Publish first, then compile the installer
+dotnet publish PSForge.csproj -c Release -r win-x64 --self-contained false -o bin/publish
+makensis installer.nsi
+```
+
+The setup executable is written to `bin/installer/PSForge-<version>-Setup.exe`.
+
+The installer:
+- Detects whether .NET 8.0 Desktop Runtime is installed and offers to download it if missing
+- Installs to `Program Files\PSForge`
+- Creates Start Menu shortcuts
+- Registers an uninstaller in Add/Remove Programs
+- Supports silent installation via `/S` flag
+
+### Release Script
+
+Use the automated release script for versioned releases:
+
+```powershell
+# Interactive mode (prompts for version and notes)
+.\update-application.ps1
+
+# Parameterised mode
+.\update-application.ps1 -Version 1.2.0 -Notes "Added feature X"
+
+# Publish only, no installer (if NSIS not available)
+.\update-application.ps1 -Version 1.2.0 -Notes "Local build" -SkipInstaller -SkipGit
+
+# Dry run (preview without changes)
+.\update-application.ps1 -Version 1.2.0 -Notes "Test" -DryRun
+```
 
 ## Running
 
@@ -143,8 +196,8 @@ When contributing to PSForge, please:
 ## Troubleshooting
 
 ### Application fails to start
-- Verify .NET 8.0 runtime is installed
-- Check Windows is supported (Windows 7 SP1 or higher)
+- Verify .NET 8.0 Desktop Runtime is installed (`dotnet --list-runtimes` should show `Microsoft.WindowsDesktop.App 8.x`)
+- If installed via the setup installer, try running the installer again — it will re-check the runtime
 - Run from Visual Studio for detailed error messages
 
 ### PowerShell commands fail to execute
