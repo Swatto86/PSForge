@@ -154,13 +154,16 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task DiscoverModulesAsync()
     {
+        _logger.LogInformation("User initiated module discovery");
         try
         {
             IsLoading = true;
             ErrorMessage = null;
             StatusText = "Discovering installed modules...";
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var modules = await _discoveryService.GetAvailableModulesAsync();
+            sw.Stop();
 
             AvailableModules.Clear();
             foreach (var module in modules.OrderBy(m => m.Name))
@@ -169,11 +172,12 @@ public partial class MainViewModel : ObservableObject
             }
 
             StatusText = $"Found {modules.Count} installed modules";
-            _logger.LogInformation("Module discovery complete: {Count} modules", modules.Count);
+            _logger.LogInformation("Module discovery complete: {Count} modules discovered in {ElapsedMs}ms", 
+                modules.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to discover modules");
+            _logger.LogError(ex, "Module discovery failed");
             ErrorMessage = $"Failed to discover modules: {ex.Message}";
             StatusText = "Module discovery failed";
         }
@@ -191,6 +195,8 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedModule == null) return;
 
+        _logger.LogInformation("User initiated load of module '{ModuleName}'", SelectedModule.Name);
+
         try
         {
             IsLoading = true;
@@ -198,7 +204,9 @@ public partial class MainViewModel : ObservableObject
             StatusText = $"Loading module '{SelectedModule.Name}'...";
             _helpTextService.ClearCache();
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             _loadedModuleInfo = await _discoveryService.LoadModuleWithCmdletsAsync(SelectedModule.Name);
+            sw.Stop();
             _allCmdlets = _loadedModuleInfo.Cmdlets;
 
             RequiresConnection = _loadedModuleInfo.HasConnectCmdlet;
@@ -214,13 +222,13 @@ public partial class MainViewModel : ObservableObject
             ModuleVersion = _loadedModuleInfo.Version;
 
             StatusText = $"Loaded '{SelectedModule.Name}' — {_allCmdlets.Count} cmdlets";
-            _logger.LogInformation("Module '{ModuleName}' loaded with {CmdletCount} cmdlets",
-                SelectedModule.Name, _allCmdlets.Count);
+            _logger.LogInformation("Module '{ModuleName}' loaded successfully with {CmdletCount} cmdlets in {ElapsedMs}ms",
+                SelectedModule.Name, _allCmdlets.Count, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load module '{ModuleName}'", SelectedModule?.Name);
-            ErrorMessage = $"Failed to load module: {ex.Message}";
+            ErrorMessage = $"Failed to load module: {ex.Message}\n\nCheck logs at: {GetLogDirectory()}";
             StatusText = "Module load failed";
             IsModuleLoaded = false;
         }
@@ -228,6 +236,12 @@ public partial class MainViewModel : ObservableObject
         {
             IsLoading = false;
         }
+    }
+
+    private static string GetLogDirectory()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return System.IO.Path.Combine(appData, "PSForge", "logs");
     }
 
     private bool CanLoadModule() => SelectedModule != null;

@@ -2,8 +2,10 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PSForge.Core;
+using PSForge.Logging;
 using PSForge.Services;
 using PSForge.ViewModels;
+using Serilog;
 
 namespace PSForge;
 
@@ -39,11 +41,19 @@ public partial class App : Application
     /// </summary>
     private void Application_Startup(object sender, StartupEventArgs e)
     {
+        // Initialize file logging FIRST so it's available throughout startup
+        FileLoggerConfiguration.Initialize();
+
         var services = new ServiceCollection();
         ConfigureServices(services);
 
         _serviceProvider = services.BuildServiceProvider();
         Services = _serviceProvider;
+
+        var logger = _serviceProvider.GetRequiredService<ILogger<App>>();
+        logger.LogInformation("=== PSForge Application Starting ===");
+        logger.LogInformation("Version: {Version}", GetType().Assembly.GetName().Version);
+        logger.LogInformation("Log Directory: {LogDir}", FileLoggerConfiguration.GetLogDirectory());
 
         // Capture command-line arguments: first arg is treated as a module name to auto-load.
         // Usage: PSForge.exe <ModuleName>
@@ -66,7 +76,11 @@ public partial class App : Application
     /// </summary>
     private void Application_Exit(object sender, ExitEventArgs e)
     {
+        var logger = _serviceProvider?.GetService<ILogger<App>>();
+        logger?.LogInformation("=== PSForge Application Exiting (Code: {ExitCode}) ===", e.ApplicationExitCode);
+        
         _serviceProvider?.Dispose();
+        Log.CloseAndFlush();
     }
 
     /// <summary>
@@ -80,20 +94,8 @@ public partial class App : Application
     /// </summary>
     private static void ConfigureServices(IServiceCollection services)
     {
-        // Logging
-        services.AddLogging(builder =>
-        {
-            builder.SetMinimumLevel(LogLevel.Debug);
-            builder.AddDebug(); // Writes to VS/debug output window
-
-            // Debug mode: PSFORGE_DEBUG=1 environment variable enables trace-level logging.
-            // This satisfies Rule 10 (debug mode) without requiring a rebuild.
-            var debugMode = Environment.GetEnvironmentVariable("PSFORGE_DEBUG");
-            if (!string.IsNullOrEmpty(debugMode) && debugMode != "0")
-            {
-                builder.SetMinimumLevel(LogLevel.Trace);
-            }
-        });
+        // Logging - use Serilog with file output to %APPDATA%\PSForge\logs
+        services.AddLogging(builder => builder.AddFileLogging());
 
         // Core (singleton — one session manager with persistent runspaces)
         services.AddSingleton<PowerShellSessionManager>();

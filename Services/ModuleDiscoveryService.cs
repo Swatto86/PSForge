@@ -40,22 +40,37 @@ public sealed class ModuleDiscoveryService
     {
         if (_cachedModules != null)
         {
+            _logger.LogDebug("Returning {Count} cached modules", _cachedModules.Count);
             return _cachedModules;
         }
 
-        var modules = await _introspector.GetInstalledModulesAsync();
+        _logger.LogInformation("Fetching available modules (no cache)...");
+        var sw = System.Diagnostics.Stopwatch.StartNew();
 
-        // Enforce cache size bound
-        if (modules.Count > MaxCachedModules)
+        try
         {
-            _logger.LogWarning(
-                "Module count ({Count}) exceeds cache limit ({Limit}), truncating",
-                modules.Count, MaxCachedModules);
-            modules = modules.Take(MaxCachedModules).ToList();
-        }
+            var modules = await _introspector.GetInstalledModulesAsync();
+            sw.Stop();
 
-        _cachedModules = modules;
-        return _cachedModules;
+            // Enforce cache size bound
+            if (modules.Count > MaxCachedModules)
+            {
+                _logger.LogWarning(
+                    "Module count ({Count}) exceeds cache limit ({Limit}), truncating",
+                    modules.Count, MaxCachedModules);
+                modules = modules.Take(MaxCachedModules).ToList();
+            }
+
+            _cachedModules = modules;
+            _logger.LogInformation("Cached {Count} modules (fetched in {ElapsedMs}ms)",
+                _cachedModules.Count, sw.ElapsedMilliseconds);
+            return _cachedModules;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch available modules");
+            throw;
+        }
     }
 
     /// <summary>
@@ -76,41 +91,73 @@ public sealed class ModuleDiscoveryService
     /// <returns>Updated ModuleInfo with populated Cmdlets list.</returns>
     public async Task<ModuleInfo> LoadModuleWithCmdletsAsync(string moduleName)
     {
-        _logger.LogInformation("Loading module '{ModuleName}' with full cmdlet metadata", moduleName);
+        _logger.LogInformation("Loading module '{ModuleName}' with full cmdlet metadata...", moduleName);
+        var overallSw = System.Diagnostics.Stopwatch.StartNew();
 
-        // Load the module into both runspaces
-        await _sessionManager.LoadModuleAsync(moduleName);
-
-        // Enumerate all cmdlets with parameter metadata
-        var cmdlets = await _introspector.GetModuleCmdletsAsync(moduleName);
-
-        // Find the module in cache to preserve its metadata (version, author, etc.)
-        var moduleInfo = _cachedModules?.FirstOrDefault(m =>
-            m.Name.Equals(moduleName, StringComparison.OrdinalIgnoreCase));
-
-        if (moduleInfo != null)
+        try
         {
-            // Return a new instance with the cmdlets populated
-            return new ModuleInfo
+            // Load the module into both runspaces
+            _logger.LogDebug("Step 1/2: Importing module '{ModuleName}' into runspaces", moduleName);
+            var importSw = System.Diagnostics.Stopwatch.StartNew();
+            await _sessionManager.LoadModuleAsync(moduleName);
+            importSw.Stop();
+            _logger.LogInformation("Module '{ModuleName}' imported in {ElapsedMs}ms", moduleName, importSw.ElapsedMilliseconds);
+
+            // Enumerate all cmdlets with parameter metadata
+            _logger.LogDebug("Step 2/2: Enumerating cmdlets for module '{ModuleName}'", moduleName);
+            var cmdletSw = System.Diagnostics.Stopwatch.StartNew();
+            var cmdlets = await _introspector.GetModuleCmdletsAsync(moduleName);
+            cmdletSw.Stop();
+            _logger.LogInformation("Enumerated {CmdletCount} cmdlets in {ElapsedMs}ms", 
+                cmdlets.Count, cmdletSw.ElapsedMilliseconds);
+
+            // Find the module in cache to preserve its metadata (version, author, etc.)
+            var moduleInfo = _cachedModules?.FirstOrDefault(m =>
+                m.Name.Equals(moduleName, StringComparison.OrdinalIgnoreCase));
+
+            if (moduleInfo != null)
             {
-                Name = moduleInfo.Name,
-                Version = moduleInfo.Version,
-                Description = moduleInfo.Description,
-                ModulePath = moduleInfo.ModulePath,
-                Author = moduleInfo.Author,
-                ModuleType = moduleInfo.ModuleType,
-                HasConnectCmdlet = moduleInfo.HasConnectCmdlet,
-                ConnectCmdletName = moduleInfo.ConnectCmdletName,
-                DisconnectCmdletName = moduleInfo.DisconnectCmdletName,
+                _logger.LogDebug("Found module '{ModuleName}' in cache, preserving metadata", moduleName);
+                // Return a new instance with the cmdlets populated
+                var result = new ModuleInfo
+                {
+                    Name = moduleInfo.Name,
+                    Version = moduleInfo.Version,
+                    Description = moduleInfo.Description,
+                    ModulePath = moduleInfo.ModulePath,
+                    Author = moduleInfo.Author,
+                    ModuleType = moduleInfo.ModuleType,
+                    HasConnectCmdlet = moduleInfo.HasConnectCmdlet,
+                    ConnectCmdletName = moduleInfo.ConnectCmdletName,
+                    DisconnectCmdletName = moduleInfo.DisconnectCmdletName,
+                    Cmdlets = cmdlets
+                };
+
+                overallSw.Stop();
+                _logger.LogInformation("Module '{ModuleName}' fully loaded with {CmdletCount} cmdlets (total time: {ElapsedMs}ms)",
+                    moduleName, cmdlets.Count, overallSw.ElapsedMilliseconds);
+                return result;
+            }
+
+            // Not in cache (shouldn't normally happen); build a minimal ModuleInfo
+            _logger.LogWarning("Module '{ModuleName}' not found in cache, creating minimal metadata", moduleName);
+            var minimalResult = new ModuleInfo
+            {
+                Name = moduleName,
                 Cmdlets = cmdlets
             };
-        }
 
-        // Not in cache (shouldn't normally happen); build a minimal ModuleInfo
-        return new ModuleInfo
+            overallSw.Stop();
+            _logger.LogInformation("Module '{ModuleName}' loaded with minimal metadata (total time: {ElapsedMs}ms)",
+                moduleName, overallSw.ElapsedMilliseconds);
+            return minimalResult;
+        }
+        catch (Exception ex)
         {
-            Name = moduleName,
-            Cmdlets = cmdlets
-        };
+            overallSw.Stop();
+            _logger.LogError(ex, "Failed to load module '{ModuleName}' after {ElapsedMs}ms", 
+                moduleName, overallSw.ElapsedMilliseconds);
+            throw;
+        }
     }
 }

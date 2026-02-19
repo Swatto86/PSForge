@@ -47,35 +47,66 @@ public sealed class ModuleIntrospector
     /// </summary>
     public async Task<List<ModuleInfo>> GetInstalledModulesAsync()
     {
-        _logger.LogDebug("Discovering installed PowerShell modules");
+        _logger.LogInformation("Discovering installed PowerShell modules via Get-Module -ListAvailable...");
 
         return await Task.Run(() =>
         {
-            using var ps = _sessionManager.CreateIntrospectionShell();
-            ps.AddCommand("Get-Module")
-                .AddParameter("ListAvailable");
-
-            var results = ps.Invoke();
-            var modules = new List<ModuleInfo>();
-
-            foreach (var result in results)
+            try
             {
-                try
+                using var ps = _sessionManager.CreateIntrospectionShell();
+                ps.AddCommand("Get-Module")
+                    .AddParameter("ListAvailable");
+
+                _logger.LogDebug("Executing Get-Module -ListAvailable");
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var results = ps.Invoke();
+                sw.Stop();
+
+                _logger.LogDebug("Get-Module returned {ResultCount} results in {ElapsedMs}ms", 
+                    results.Count, sw.ElapsedMilliseconds);
+
+                if (ps.HadErrors)
                 {
-                    var module = ParseModuleInfo(result);
-                    if (module != null)
+                    var errors = ps.Streams.Error.Select(e => e.ToString()).ToList();
+                    _logger.LogWarning("Get-Module -ListAvailable reported non-fatal errors: {Errors}",
+                        string.Join("; ", errors));
+                }
+
+                var modules = new List<ModuleInfo>();
+                int skipped = 0;
+
+                foreach (var result in results)
+                {
+                    try
                     {
-                        modules.Add(module);
+                        var module = ParseModuleInfo(result);
+                        if (module != null)
+                        {
+                            modules.Add(module);
+                            _logger.LogTrace("Parsed module: {ModuleName} v{Version} ({ModuleType})",
+                                module.Name, module.Version, module.ModuleType);
+                        }
+                        else
+                        {
+                            skipped++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        skipped++;
+                        _logger.LogWarning(ex, "Failed to parse module metadata for an entry, skipping");
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to parse module metadata for an entry, skipping");
-                }
-            }
 
-            _logger.LogInformation("Discovered {ModuleCount} installed modules", modules.Count);
-            return modules;
+                _logger.LogInformation("Discovered {ModuleCount} installed modules ({Skipped} skipped)", 
+                    modules.Count, skipped);
+                return modules;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to discover installed modules");
+                throw;
+            }
         });
     }
 
@@ -86,37 +117,67 @@ public sealed class ModuleIntrospector
     /// <param name="moduleName">Name of the module (must already be loaded via SessionManager).</param>
     public async Task<List<CmdletInfo>> GetModuleCmdletsAsync(string moduleName)
     {
-        _logger.LogDebug("Enumerating cmdlets for module '{ModuleName}'", moduleName);
+        _logger.LogInformation("Enumerating cmdlets for module '{ModuleName}'...", moduleName);
 
         return await Task.Run(() =>
         {
-            using var ps = _sessionManager.CreateIntrospectionShell();
-            ps.AddCommand("Get-Command")
-                .AddParameter("Module", moduleName);
-
-            var results = ps.Invoke();
-            var cmdlets = new List<CmdletInfo>();
-
-            foreach (var result in results)
+            try
             {
-                try
+                using var ps = _sessionManager.CreateIntrospectionShell();
+                ps.AddCommand("Get-Command")
+                    .AddParameter("Module", moduleName);
+
+                _logger.LogDebug("Executing Get-Command -Module '{ModuleName}'", moduleName);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var results = ps.Invoke();
+                sw.Stop();
+
+                _logger.LogDebug("Get-Command returned {ResultCount} commands in {ElapsedMs}ms",
+                    results.Count, sw.ElapsedMilliseconds);
+
+                if (ps.HadErrors)
                 {
-                    var cmdlet = ParseCmdletInfo(result);
-                    if (cmdlet != null)
+                    var errors = ps.Streams.Error.Select(e => e.ToString()).ToList();
+                    _logger.LogWarning("Get-Command -Module '{ModuleName}' reported errors: {Errors}",
+                        moduleName, string.Join("; ", errors));
+                }
+
+                var cmdlets = new List<CmdletInfo>();
+                int skipped = 0;
+
+                foreach (var result in results)
+                {
+                    try
                     {
-                        cmdlets.Add(cmdlet);
+                        var cmdlet = ParseCmdletInfo(result);
+                        if (cmdlet != null)
+                        {
+                            cmdlets.Add(cmdlet);
+                            _logger.LogTrace("Parsed cmdlet: {CmdletName} ({ParameterSetCount} parameter sets)",
+                                cmdlet.Name, cmdlet.ParameterSets.Count);
+                        }
+                        else
+                        {
+                            skipped++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        skipped++;
+                        var name = result.Properties["Name"]?.Value?.ToString() ?? "unknown";
+                        _logger.LogWarning(ex, "Failed to parse cmdlet '{CmdletName}', skipping", name);
                     }
                 }
-                catch (Exception ex)
-                {
-                    var name = result.Properties["Name"]?.Value?.ToString() ?? "unknown";
-                    _logger.LogWarning(ex, "Failed to parse cmdlet '{CmdletName}', skipping", name);
-                }
-            }
 
-            _logger.LogInformation("Found {CmdletCount} cmdlets in module '{ModuleName}'",
-                cmdlets.Count, moduleName);
-            return cmdlets;
+                _logger.LogInformation("Found {CmdletCount} cmdlets in module '{ModuleName}' ({Skipped} skipped)",
+                    cmdlets.Count, moduleName, skipped);
+                return cmdlets;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to enumerate cmdlets for module '{ModuleName}'", moduleName);
+                throw;
+            }
         });
     }
 
