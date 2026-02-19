@@ -108,7 +108,7 @@ $SemverRegex = '^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*
 
 if (-not $Version) {
     $currentXml = [xml](Get-Content $CsprojPath -Raw)
-    $currentVer = $currentXml.Project.PropertyGroup[0].Version
+    $currentVer = ($currentXml.Project.PropertyGroup | Select-Object -First 1).Version
     $Version = Read-Host "Enter new version (current: $currentVer)"
 }
 
@@ -118,7 +118,7 @@ if ($Version -notmatch $SemverRegex) {
 }
 
 $csprojXml   = [xml](Get-Content $CsprojPath -Raw)
-$currentVer  = $csprojXml.Project.PropertyGroup[0].Version
+$currentVer  = ($csprojXml.Project.PropertyGroup | Select-Object -First 1).Version
 
 if ($Version -eq $currentVer -and -not $Force) {
     Write-Fail "Version $Version is already current. Use -Force to overwrite."

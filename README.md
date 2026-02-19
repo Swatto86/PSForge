@@ -100,6 +100,36 @@ Use the automated release script for versioned releases:
 .\update-application.ps1 -Version 1.2.0 -Notes "Test" -DryRun
 ```
 
+### Automated Release Pipeline
+
+The repository includes a GitHub Actions workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml)) that automatically builds and publishes releases when you push a version tag:
+
+**Process:**
+1. Run `update-application.ps1` locally (it will tag and push)
+2. GitHub Actions detects the tag push
+3. The workflow:
+   - Sets up .NET 8.0 SDK and NSIS
+   - Publishes the application (framework-dependent)
+   - Builds the NSIS installer
+   - Creates a GitHub release with the installer as a downloadable asset
+4. Users download `PSForge-{version}-Setup.exe` from the [Releases page](../../releases)
+
+**Requirements for CI:**
+- Repository must be on GitHub
+- No additional secrets required (uses default `GITHUB_TOKEN`)
+
+**Manual trigger:**
+```bash
+# Tag and push triggers the workflow
+git tag v1.2.0 -m "Release notes"
+git push origin v1.2.0
+```
+
+The workflow creates a release with:
+- Installer executable (`PSForge-{version}-Setup.exe`)
+- Auto-generated release notes
+- Installation instructions
+
 ## Running
 
 ### From Command Line
